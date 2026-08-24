@@ -1,6 +1,14 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { theme } from '../theme.js';
+
+const LINKS = [
+  { to: '/', label: 'Estimates', end: true },
+  { to: '/jobs', label: 'Jobs' },
+  { to: '/customers', label: 'Customers' },
+  { to: '/commissions', label: 'Commissions' },
+  { to: '/reports', label: 'Reports' }
+];
 
 const navItem = (active) => ({
   padding: '9px 11px',
@@ -8,7 +16,8 @@ const navItem = (active) => ({
   font: (active ? 500 : 400) + " 13px/1 " + theme.font.sans,
   color: active ? '#fff' : '#8E8B85',
   background: active ? theme.color.shellHover : 'transparent',
-  textDecoration: 'none'
+  textDecoration: 'none',
+  display: 'block'
 });
 
 export default function AppShell({ children }) {
@@ -31,11 +40,11 @@ export default function AppShell({ children }) {
         </button>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Link to="/" style={navItem(true)}>Estimates</Link>
-          <span style={navItem(false)}>Jobs</span>
-          <span style={navItem(false)}>Customers</span>
-          <span style={navItem(false)}>Commissions</span>
-          <span style={navItem(false)}>Reports</span>
+          {LINKS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} style={({ isActive }) => navItem(isActive)}>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
         <div style={{ marginTop: 'auto', borderTop: '1px solid #26282B', paddingTop: 12 }}>
