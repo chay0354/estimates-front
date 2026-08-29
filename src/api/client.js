@@ -22,21 +22,32 @@ export async function request(path, { method = 'GET', body, params } = {}) {
     });
   }
 
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(getToken() ? { Authorization: 'Bearer ' + getToken() } : {})
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(getToken() ? { Authorization: 'Bearer ' + getToken() } : {})
+  };
 
-  if (res.status === 401) {
-    setToken(null);
-    if (!location.pathname.startsWith('/login')) location.assign('/login');
-    throw new ApiError(401, { error: { message: 'Session expired' } });
+  let lastErr;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (res.status === 401) {
+        setToken(null);
+        if (!location.pathname.startsWith('/login')) location.assign('/login');
+        throw new ApiError(401, { error: { message: 'Session expired' } });
+      }
+      const payload = res.status === 204 ? null : await res.json().catch(() => null);
+      if (!res.ok) throw new ApiError(res.status, payload);
+      return payload;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      lastErr = err;
+      if (attempt < 4) await new Promise((r) => setTimeout(r, 350 * attempt));
+    }
   }
-  const payload = res.status === 204 ? null : await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, payload);
-  return payload;
+  throw new ApiError(0, { error: { message: lastErr?.message || 'Cannot reach the API. Try again in a moment.' } });
 }

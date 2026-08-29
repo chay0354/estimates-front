@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../api/estimates.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { theme } from '../theme.js';
-import { ESTIMATE_STATUSES, JOB_STATUSES, COMMISSION_STRUCTURES } from '../constants/enums.js';
-import { Card, TextField, SelectField, MoneyField, LinkField, Segmented, Label } from '../components/Field.jsx';
+import { ESTIMATE_STATUSES, COMMISSION_STRUCTURES } from '../constants/enums.js';
+import { Card, TextField, SelectField, MoneyField, LinkField, Segmented } from '../components/Field.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -12,7 +12,7 @@ const EMPTY = {
   estimateNumber: '', estimateLink: 'https://', customerId: '', contactId: '', phone: '', email: '',
   addressId: '', marketingSourceId: '', estimateDate: today(), assignedUserId: '', estimateTypeId: '',
   commissionStructure: 'HVAC', estimateAmount: '', converted: false, status: ESTIMATE_STATUSES[0],
-  jobStatus: JOB_STATUSES[0], jobLink: 'https://', jobDate: '', jobAmount: '', installerIds: []
+  installerIds: []
 };
 
 export default function NewEstimate() {
@@ -26,7 +26,6 @@ export default function NewEstimate() {
   const [newCustomer, setNewCustomer] = useState(false);
   const [newSource, setNewSource] = useState('');
   const [newType, setNewType] = useState('');
-  const [newInstaller, setNewInstaller] = useState('');
   const [draft, setDraft] = useState({ customerName: '', contactName: '', address: '' });
 
   useEffect(() => {
@@ -105,15 +104,6 @@ export default function NewEstimate() {
     return next;
   };
 
-  const addInstaller = async () => {
-    const name = newInstaller.trim();
-    if (!name) return;
-    const installer = await api.createInstaller({ name });
-    setLookups((l) => ({ ...l, installers: [...(l.installers || []), installer] }));
-    setForm((f) => ({ ...f, installerIds: [...f.installerIds, installer.id] }));
-    setNewInstaller('');
-  };
-
   const toLink = (value) => {
     const link = String(value || '').trim();
     if (!link) return '';
@@ -131,11 +121,8 @@ export default function NewEstimate() {
         ...ready,
         estimateLink: toLink(ready.estimateLink),
         estimateAmount: Number(String(ready.estimateAmount).replace(/[^0-9.]/g, '')) || 0,
-        jobAmount: ready.converted ? Number(String(ready.jobAmount).replace(/[^0-9.]/g, '')) || 0 : undefined,
-        jobStatus: ready.converted ? ready.jobStatus : undefined,
-        jobLink: ready.converted ? toLink(ready.jobLink) : undefined,
-        jobDate: ready.converted ? ready.jobDate : undefined,
-        installerIds: ready.converted ? ready.installerIds : []
+        converted: false,
+        installerIds: []
       };
       const created = await api.createEstimate(payload);
       nav('/', { state: { createdId: created.id } });
@@ -153,7 +140,7 @@ export default function NewEstimate() {
   if (!lookups) return <div style={{ padding: 32, color: theme.color.muted, font: '400 14px/1 ' + theme.font.sans }}>Loading…</div>;
 
   return (
-    <div style={{ padding: '26px 32px 60px', maxWidth: 1080 }}>
+    <div style={{ padding: '26px 32px 60px', maxWidth: 1080, width: '100%', boxSizing: 'border-box', minWidth: 0, overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 22 }}>
         <div>
           <h1 style={{ font: '600 25px/1.2 ' + theme.font.sans, margin: 0, letterSpacing: '-.015em' }}>New estimate</h1>
@@ -239,47 +226,8 @@ export default function NewEstimate() {
 
       <Card title="Amount & status">
         <MoneyField label="Estimate Amount" required value={form.estimateAmount} onChange={set('estimateAmount')} error={errors.estimateAmount} />
-        <Segmented label="Converted" required options={['No', 'Yes']} value={form.converted ? 'Yes' : 'No'}
-          onChange={(v) => setForm((f) => ({ ...f, converted: v === 'Yes' }))} />
         <SelectField label="Status" required value={form.status} onChange={set('status')} error={errors.status} options={ESTIMATE_STATUSES} />
       </Card>
-
-      {form.converted && (
-        <Card title="Job details — converted" accent="#CFE3D8">
-          <div style={{ gridColumn: 'span 2' }}>
-            <LinkField label="Job Link" required value={form.jobLink} onChange={set('jobLink')} error={errors.jobLink} />
-          </div>
-          <SelectField label="Job Status" required value={form.jobStatus} onChange={set('jobStatus')} error={errors.jobStatus} options={JOB_STATUSES} />
-          <TextField label="Job Date" required type="date" value={form.jobDate} onChange={set('jobDate')} error={errors.jobDate} />
-          <MoneyField label="Job Amount" required value={form.jobAmount} onChange={set('jobAmount')} error={errors.jobAmount} />
-          <div>
-            <Label>Assigned Installers</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
-              {lookups.installers.map((i) => {
-                const on = form.installerIds.includes(i.id);
-                return (
-                  <button key={i.id} type="button"
-                    onClick={() => setForm((f) => ({ ...f, installerIds: on ? f.installerIds.filter((x) => x !== i.id) : [...f.installerIds, i.id] }))}
-                    style={{ padding: '7px 11px', borderRadius: 14, cursor: 'pointer',
-                      border: '1px solid ' + (on ? theme.color.won : theme.color.inputBorder),
-                      background: on ? '#E4F3EB' : '#fff', color: on ? '#0F6B45' : theme.color.body,
-                      font: '400 12px/1 ' + theme.font.sans }}>
-                    {i.name}
-                  </button>
-                );
-              })}
-              {!lookups.installers.length && (
-                <span style={{ font: '400 12px/1.4 ' + theme.font.sans, color: theme.color.faint }}>None in the database yet.</span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input value={newInstaller} onChange={(e) => setNewInstaller(e.target.value)} placeholder="Add installer name"
-                style={{ flex: 1, height: 34, border: '1px solid ' + theme.color.inputBorder, borderRadius: 6, padding: '0 10px', font: '400 13px/1 ' + theme.font.sans }} />
-              <button type="button" onClick={addInstaller} style={{ height: 34, padding: '0 12px', border: '1px solid ' + theme.color.inputBorder, borderRadius: 6, background: '#fff', font: '500 12px/1 ' + theme.font.sans, cursor: 'pointer' }}>Save</button>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

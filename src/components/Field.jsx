@@ -131,9 +131,9 @@ export function Segmented({ label, required, options, value, onChange }) {
 
 export function Card({ title, accent, children }) {
   return (
-    <section style={{ background: theme.color.card, border: '1px solid ' + (accent || theme.color.border), borderRadius: 10, padding: '22px 24px 26px', marginBottom: 16 }}>
+    <section style={{ background: theme.color.card, border: '1px solid ' + (accent || theme.color.border), borderRadius: 10, padding: '22px 24px 26px', marginBottom: 16, overflow: 'hidden', maxWidth: '100%', boxSizing: 'border-box' }}>
       <div style={{ font: '500 11px/1 ' + theme.font.sans, letterSpacing: '.07em', textTransform: 'uppercase', color: accent ? theme.color.won : theme.color.faint, marginBottom: 18 }}>{title}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px 20px', alignItems: 'start' }}>{children}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '18px 20px', alignItems: 'start' }}>{children}</div>
     </section>
   );
 }

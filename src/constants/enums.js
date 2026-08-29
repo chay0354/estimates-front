@@ -7,8 +7,12 @@ export const ESTIMATE_STATUSES = [
   'b.5 LOST HVAC',
   'b.6 CANCELLED HVAC'
 ];
-export const JOB_STATUSES = ['Work In Progress', 'Ready To Close', 'Ready To Pay', 'Job Completed'];
+export const JOB_STATUSES = ['Work In Progress', 'Ready To Close', 'Admin Approval', 'Closed'];
 export const COMMISSION_STRUCTURES = ['HVAC', 'Repair', 'Membership Only'];
+export const PAYMENT_MADE_BY = ['Customer', 'Rebate'];
+export const CREWS = ['HVAC', 'Repair'];
+export const ACCOUNTING_ROLES = ['ADMIN', 'ACCOUNTING'];
+export const SETTINGS_ROLES = ['ADMIN', 'MANAGER'];
 export const RANGES = [
   ['all', 'All time'],
   ['7d', 'Last 7 days'],

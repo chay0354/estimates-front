@@ -11,7 +11,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!getToken()) return;
-    api.me().then((r) => setUser(r.user)).catch(() => setToken(null)).finally(() => setLoading(false));
+    api.me()
+      .then((r) => setUser(r.user))
+      .catch((e) => {
+        if (e.status === 401) {
+          setToken(null);
+          setUser(null);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const signIn = async (email, password) => {

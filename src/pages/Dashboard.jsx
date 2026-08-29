@@ -14,15 +14,24 @@ const DEFAULTS = {
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const highlightId = useLocation().state?.createdId;
+  const location = useLocation();
+  const highlightId = location.state?.createdId;
+  const convertedParam = new URLSearchParams(location.search).get('converted');
 
-  const [filters, setFilters] = useState(DEFAULTS);
+  const [filters, setFilters] = useState({ ...DEFAULTS, converted: convertedParam === 'no' || convertedParam === 'yes' ? convertedParam : 'any' });
   const [debouncedQ, setDebouncedQ] = useState('');
   const [lookups, setLookups] = useState(null);
   const [data, setData] = useState({ rows: [], summary: { distribution: [] } });
   const [loading, setLoading] = useState(true);
+  const [convertingId, setConvertingId] = useState(null);
+  const [banner, setBanner] = useState('');
 
   useEffect(() => { api.getLookups().then(setLookups).catch(() => {}); }, []);
+  useEffect(() => {
+    if (convertedParam === 'no' || convertedParam === 'yes' || convertedParam === 'any') {
+      setFilters((f) => (f.converted === convertedParam ? f : { ...f, converted: convertedParam, page: 1 }));
+    }
+  }, [convertedParam]);
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(filters.q), 250);
     return () => clearTimeout(t);
@@ -45,11 +54,29 @@ export default function Dashboard() {
 
   const s = data.summary || {};
 
+  const onConvert = async (row, action) => {
+    if (action === 'open' || row.converted) {
+      nav('/jobs/' + row.id + (row.jobStatus ? '?status=' + encodeURIComponent(row.jobStatus) : ''));
+      return;
+    }
+    setConvertingId(row.id);
+    setBanner('');
+    try {
+      await api.convertEstimate(row.id, {});
+      nav('/jobs/' + row.id + '?status=' + encodeURIComponent('Work In Progress'));
+    } catch (err) {
+      setBanner(err.message || 'Could not convert this estimate');
+      setConvertingId(null);
+    }
+  };
+
   return (
-    <div style={{ padding: '26px 32px 48px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <div style={{ padding: '26px 32px 48px', display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0, width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
         <div>
-          <h1 style={{ font: '600 25px/1.2 ' + theme.font.sans, margin: 0, letterSpacing: '-.015em' }}>Estimate pipeline</h1>
+          <h1 style={{ font: '600 25px/1.2 ' + theme.font.sans, margin: 0, letterSpacing: '-.015em' }}>
+            {filters.converted === 'no' ? 'New Estimate' : 'Estimate pipeline'}
+          </h1>
           <p style={{ font: '400 13px/1.5 ' + theme.font.sans, color: theme.color.muted, margin: '6px 0 0' }}>
             {loading ? 'Loading…' : (s.total || 0) + ' estimates · ' + shortMoney(s.totalValue) + ' total value'}
           </p>
@@ -59,12 +86,16 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {banner && (
+        <div style={{ background: '#FDF1EC', border: '1px solid #F0C8B6', borderRadius: 8, padding: '12px 14px', font: '400 13px/1.5 ' + theme.font.sans, color: '#8C2F09' }}>{banner}</div>
+      )}
+
       <KpiRow summary={{ openPipeline: 0, wonValue: 0, conversionRate: 0, needsFollowUp: 0, openCount: 0, wonCount: 0, ...s }} />
       <Distribution distribution={s.distribution} total={s.total || 0} />
 
       <div style={{ background: theme.color.card, border: '1px solid ' + theme.color.border, borderRadius: 10, overflow: 'hidden' }}>
         <Filters filters={filters} setFilter={setFilter} reset={() => setFilters(DEFAULTS)} lookups={lookups} />
-        <EstimateTable rows={data.rows} sort={filters} onSort={onSort} highlightId={highlightId} />
+        <EstimateTable rows={data.rows} sort={filters} onSort={onSort} highlightId={highlightId} onConvert={onConvert} convertingId={convertingId} />
       </div>
     </div>
   );

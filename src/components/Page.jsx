@@ -2,12 +2,12 @@ import { theme } from '../theme.js';
 
 export function Page({ title, subtitle, action, children }) {
   return (
-    <div style={{ padding: '26px 32px 48px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <div style={{ padding: '26px 32px 48px', display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0, width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
         <div>
-          <h1 style={{ font: '600 25px/1.2 ' + theme.font.sans, margin: 0, letterSpacing: '-.015em' }}>{title}</h1>
+          {title && <h1 style={{ font: '600 25px/1.2 ' + theme.font.sans, margin: 0, letterSpacing: '-.015em' }}>{title}</h1>}
           {subtitle && (
-            <p style={{ font: '400 13px/1.5 ' + theme.font.sans, color: theme.color.muted, margin: '6px 0 0' }}>{subtitle}</p>
+            <p style={{ font: '400 13px/1.5 ' + theme.font.sans, color: theme.color.muted, margin: title ? '6px 0 0' : 0 }}>{subtitle}</p>
           )}
         </div>
         {action}
@@ -19,7 +19,7 @@ export function Page({ title, subtitle, action, children }) {
 
 export function Panel({ children }) {
   return (
-    <div style={{ background: theme.color.card, border: '1px solid ' + theme.color.border, borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ background: theme.color.card, border: '1px solid ' + theme.color.border, borderRadius: 10, overflow: 'hidden', maxWidth: '100%', minWidth: 0 }}>
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ export function Panel({ children }) {
 
 export function Kpis({ cards }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(cards.length, 4)}, 1fr)`, gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`, gap: 12 }}>
       {cards.map((c) => (
         <div key={c.label} style={{ background: theme.color.card, border: '1px solid ' + theme.color.border, borderRadius: 10, padding: '16px 17px' }}>
           <div style={{ font: '500 11px/1 ' + theme.font.sans, letterSpacing: '.06em', textTransform: 'uppercase', color: theme.color.faint }}>{c.label}</div>
@@ -47,7 +47,10 @@ export const control = {
   font: '400 13px/1 ' + theme.font.sans,
   background: '#FBFAF8',
   color: theme.color.body,
-  outline: 'none'
+  outline: 'none',
+  boxSizing: 'border-box',
+  maxWidth: '100%',
+  minWidth: 0
 };
 
 export const head = {

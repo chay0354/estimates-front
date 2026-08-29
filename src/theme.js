@@ -31,7 +31,7 @@ export const theme = {
 };
 
 export const money = (n) =>
-  '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const shortMoney = (n) => {
   const v = Number(n || 0);

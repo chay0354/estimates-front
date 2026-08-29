@@ -1,13 +1,13 @@
 import { theme, money, shortDate } from '../theme.js';
 
-const COLUMNS = '112px 1.4fr 1fr .9fr 92px 110px 100px 150px 96px';
+const COLUMNS = '112px 1.4fr 1fr .9fr 92px 110px 100px 150px 150px';
 const head = { font: '500 11px/1 ' + theme.font.sans, letterSpacing: '.05em', textTransform: 'uppercase', color: theme.color.faint };
 
-export default function EstimateTable({ rows, sort, onSort, highlightId }) {
+export default function EstimateTable({ rows, sort, onSort, highlightId, onConvert, convertingId }) {
   const arrow = (key) => (sort.sortKey === key ? (sort.sortDir === 'desc' ? ' ↓' : ' ↑') : '');
 
   return (
-    <div>
+    <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'grid', gridTemplateColumns: COLUMNS, alignItems: 'center', gap: 12, padding: '10px 15px', background: '#FBFAF8', borderBottom: '1px solid #EDE9E1' }}>
         <div style={head}>Estimate</div>
         <div style={head}>Customer</div>
@@ -18,6 +18,7 @@ export default function EstimateTable({ rows, sort, onSort, highlightId }) {
         <div style={head}>Commission</div>
         <div style={head}>Status</div>
         <div style={head}>Job</div>
+        <div style={head}></div>
       </div>
 
       {rows.map((r) => {
@@ -41,6 +42,15 @@ export default function EstimateTable({ rows, sort, onSort, highlightId }) {
               <span style={{ display: 'inline-block', padding: '5px 9px', borderRadius: 5, font: '500 11px/1.1 ' + theme.font.sans, background: bg, color: fg }}>{r.status}</span>
             </div>
             <div style={{ font: '400 11px/1.2 ' + theme.font.sans, color: r.converted ? theme.color.won : '#C4BEB2' }}>{r.converted ? r.jobStatus : '—'}</div>
+            <div style={{ textAlign: 'right' }}>
+              {r.converted ? (
+                <button onClick={() => onConvert(r, 'open')} style={actionBtn}>Open job</button>
+              ) : (
+                <button onClick={() => onConvert(r, 'convert')} disabled={convertingId === r.id} style={{ ...actionBtn, background: theme.color.ink, color: '#fff', borderColor: theme.color.ink }}>
+                  {convertingId === r.id ? 'Converting…' : 'Convert to Job'}
+                </button>
+              )}
+            </div>
           </div>
         );
       })}
@@ -53,3 +63,13 @@ export default function EstimateTable({ rows, sort, onSort, highlightId }) {
     </div>
   );
 }
+
+const actionBtn = {
+  height: 28,
+  padding: '0 9px',
+  border: '1px solid ' + theme.color.inputBorder,
+  borderRadius: 5,
+  background: '#fff',
+  font: '500 11px/1 ' + theme.font.sans,
+  cursor: 'pointer'
+};
