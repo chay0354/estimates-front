@@ -5,12 +5,11 @@ import { theme } from '../theme.js';
 import { SETTINGS_ROLES } from '../constants/enums.js';
 
 const STAGES = [
-  { n: 1, to: '/?converted=no', label: 'New Estimate', match: (p, q, flow) => flow ? flow.stage === 'new-estimate' : (p === '/' || p === '/estimates/new') },
+  { n: 1, to: '/estimates/new', label: 'New Estimate', match: (p, q, flow) => flow ? flow.stage === 'new-estimate' : p === '/estimates/new' },
   { n: 2, to: '/jobs?status=Work In Progress', label: 'Work In Progress', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Work In Progress' : q.status === 'Work In Progress' && !q.stage },
   { n: 3, to: '/jobs?stage=confirm-deposit', label: 'Confirm Deposit', match: (p, q, flow) => flow ? flow.stage === 'confirm-deposit' : q.stage === 'confirm-deposit' },
   { n: 4, to: '/jobs?status=Ready To Close', label: 'Ready to Close', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Ready To Close' : q.status === 'Ready To Close' },
-  { n: 5, to: '/jobs?status=Admin Approval', label: 'Admin Approval', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Admin Approval' : q.status === 'Admin Approval' },
-  { n: 6, to: '/jobs?status=Closed', label: 'Closed', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Closed' : q.status === 'Closed' }
+  { n: 5, to: '/jobs?status=Admin Approval', label: 'Admin Approval', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Admin Approval' : q.status === 'Admin Approval' }
 ];
 
 function queryOf(search) {
