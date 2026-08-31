@@ -92,10 +92,7 @@ export default function Jobs() {
           const [bg, fg] = JOB_COLOR[r.jobStatus] || ['#F1EEE8', '#5C574C'];
           return (
             <div key={r.id} onClick={() => nav(stage === 'confirm-deposit' ? '/jobs/' + r.id + '?stage=confirm-deposit' : '/jobs/' + r.id + (r.jobStatus ? '?status=' + encodeURIComponent(r.jobStatus) : ''))} style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 12, padding: '13px 15px', borderBottom: '1px solid #F2EFE9', alignItems: 'center', cursor: 'pointer' }}>
-              <div>
-                <div style={{ font: '500 13px/1 ' + theme.font.mono }}>{r.estimateNumber}</div>
-                <a href={r.jobLink || r.estimateLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ font: '400 11px/1 ' + theme.font.sans, color: theme.color.accent, marginTop: 5, display: 'inline-block' }}>Open link</a>
-              </div>
+              <div style={{ font: '500 13px/1 ' + theme.font.mono }}>{r.estimateNumber}</div>
               <div>
                 <div style={{ font: '500 13px/1.3 ' + theme.font.sans }}>{r.customer?.name}</div>
                 <div style={{ font: '400 11px/1.3 ' + theme.font.sans, color: theme.color.faint, marginTop: 4 }}>{r.contact?.name}</div>
