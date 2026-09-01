@@ -121,11 +121,15 @@ export default function NewEstimate() {
         ...ready,
         estimateLink: toLink(ready.estimateLink),
         estimateAmount: Number(String(ready.estimateAmount).replace(/[^0-9.]/g, '')) || 0,
-        converted: false,
+        converted: Boolean(ready.converted),
         installerIds: []
       };
       const created = await api.createEstimate(payload);
-      nav('/', { state: { createdId: created.id } });
+      if (created.converted) {
+        nav('/jobs/' + created.id + '?status=' + encodeURIComponent('Work In Progress'));
+      } else {
+        nav('/', { state: { createdId: created.id } });
+      }
     } catch (err) {
       const map = {};
       (err.issues || []).forEach((i) => { map[i.field] = i.message; });
@@ -227,6 +231,13 @@ export default function NewEstimate() {
       <Card title="Amount & status">
         <MoneyField label="Estimate Amount" required value={form.estimateAmount} onChange={set('estimateAmount')} error={errors.estimateAmount} />
         <SelectField label="Status" required value={form.status} onChange={set('status')} error={errors.status} options={ESTIMATE_STATUSES} />
+        <Segmented
+          label="Converted"
+          required
+          options={['No', 'Yes']}
+          value={form.converted ? 'Yes' : 'No'}
+          onChange={(v) => setForm((f) => ({ ...f, converted: v === 'Yes' }))}
+        />
       </Card>
     </div>
   );

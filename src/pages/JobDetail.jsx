@@ -85,11 +85,11 @@ export default function JobDetail() {
 
   useEffect(() => {
     if (!job || !setFlow) return;
-    const unconfirmed = (job.totals?.unconfirmedPayments || 0) > 0;
-    if (unconfirmed) setFlow({ stage: 'confirm-deposit', status: job.jobStatus });
-    else if (job.jobStatus) setFlow({ stage: null, status: job.jobStatus });
+    if (confirmDeposit || (job.awaitingDeposit && job.jobStatus === 'Work In Progress')) {
+      setFlow({ stage: 'confirm-deposit', status: job.jobStatus });
+    } else if (job.jobStatus) setFlow({ stage: null, status: job.jobStatus });
     else setFlow({ stage: 'new-estimate', status: null });
-  }, [job?.id, job?.jobStatus, job?.totals?.unconfirmedPayments, setFlow]);
+  }, [job?.id, job?.jobStatus, job?.awaitingDeposit, confirmDeposit, setFlow]);
 
   useEffect(() => () => { if (setFlow) setFlow(null); }, [id, setFlow]);
 
@@ -97,7 +97,9 @@ export default function JobDetail() {
     setSaving(true);
     setError('');
     try {
-      setJob(await api.updateJob(id, body));
+      const updated = await api.updateJob(id, body);
+      setJob(updated);
+      return updated;
     } catch (e) {
       setError(e.message);
     } finally {
@@ -122,7 +124,7 @@ export default function JobDetail() {
   }
 
   const t = job.totals || {};
-  const listPath = t.unconfirmedPayments > 0
+  const listPath = confirmDeposit || (job.awaitingDeposit && job.jobStatus === 'Work In Progress')
     ? '/jobs?stage=confirm-deposit'
     : job.jobStatus
       ? '/jobs?status=' + encodeURIComponent(job.jobStatus)
@@ -141,6 +143,19 @@ export default function JobDetail() {
         action={<button onClick={() => nav(listPath)} style={{ height: 34, padding: '0 14px', border: '1px solid ' + theme.color.inputBorder, borderRadius: 6, background: '#fff', font: '500 12px/1 ' + theme.font.sans, cursor: 'pointer' }}>Back</button>}
       >
         {error && <div style={{ background: '#FDF1EC', border: '1px solid #F0C8B6', borderRadius: 8, padding: '12px 14px', font: '400 13px/1.5 ' + theme.font.sans, color: '#8C2F09' }}>{error}</div>}
+        <div style={{
+          background: t.depositCovered ? '#E4F3EB' : '#FDF3E3',
+          border: '1px solid ' + (t.depositCovered ? '#B7E0C8' : '#F0D9A8'),
+          borderRadius: 8, padding: '12px 14px',
+          font: '400 13px/1.5 ' + theme.font.sans,
+          color: t.depositCovered ? '#0F6B45' : '#8A5A08'
+        }}>
+          {t.depositCovered
+            ? 'Deposits cover the job amount. The job moves to Ready to Close — you can still edit deposits here.'
+            : (job.awaitingDeposit && job.jobStatus === 'Work In Progress'
+              ? 'Waiting for deposit confirmation. Add deposits until they reach the job amount (' + money(t.jobAmount) + '). Remaining: ' + money(t.customerBalance) + '.'
+              : 'Deposits so far ' + money(t.totalPayments) + ' of ' + money(t.jobAmount) + '. Remaining: ' + money(t.customerBalance) + '.')}
+        </div>
         <Panel>
           <div style={{ padding: '8px 20px 12px' }}>
             <StarLine name="Google" value={job.googleReview || 0} />
@@ -171,6 +186,7 @@ export default function JobDetail() {
             <Stack label="Job Link" value={job.jobLink} href={job.jobLink} />
             <Stack label="Job Date" value={shortDate(job.jobDate)} />
             <Stack label="Job Amount" value={t.jobAmount ? money(t.jobAmount) : ''} />
+            <Stack label="Deposits received" value={money(t.totalPayments)} />
             <Stack label="Customer Balance" value={money(t.customerBalance)} />
           </div>
         </Panel>
@@ -218,21 +234,41 @@ export default function JobDetail() {
       <Panel>
         <div style={{ padding: '18px 20px 8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            {next ? (
+            {job.awaitingDeposit && job.jobStatus === 'Work In Progress' ? (
               <button
-                disabled={saving || (next === 'Ready To Close' && t.unconfirmedPayments > 0) || (['Admin Approval', 'Closed'].includes(next) && !canApprove)}
-                onClick={() => patch({
-                  googleReview: job.googleReview, yelpReview: job.yelpReview,
-                  fullRebate: job.fullRebate, mixedRebate: job.mixedRebate, membershipSold: job.membershipSold,
-                  jobStatus: next, adminApproved: next === 'Closed' || next === 'Admin Approval'
-                })}
+                onClick={() => nav('/jobs/' + id + '?stage=confirm-deposit')}
+                style={{
+                  border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+                  font: '600 16px/1 ' + theme.font.sans, color: '#3B6FC4',
+                  textDecoration: 'underline', textUnderlineOffset: 3
+                }}
+              >
+                Waiting for deposit confirmation
+              </button>
+            ) : next ? (
+              <button
+                disabled={saving || (['Admin Approval', 'Closed'].includes(next) && !canApprove)}
+                onClick={async () => {
+                  const body = {
+                    googleReview: job.googleReview, yelpReview: job.yelpReview,
+                    fullRebate: job.fullRebate, mixedRebate: job.mixedRebate, membershipSold: job.membershipSold
+                  };
+                  if (next === 'Ready To Close') {
+                    const updated = await patch({ ...body, requestReadyToClose: true });
+                    if (updated?.awaitingDeposit && updated.jobStatus !== 'Ready To Close') {
+                      nav('/jobs/' + id + '?stage=confirm-deposit');
+                    }
+                    return;
+                  }
+                  await patch({ ...body, jobStatus: next, adminApproved: next === 'Closed' || next === 'Admin Approval' });
+                }}
                 style={{
                   border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
                   font: '600 16px/1 ' + theme.font.sans, color: '#3B6FC4',
                   textDecoration: 'underline', textUnderlineOffset: 3, opacity: saving ? 0.7 : 1
                 }}
               >
-                {t.unconfirmedPayments > 0 && next === 'Ready To Close' ? 'Confirm deposits first' : moveLabel}
+                {moveLabel}
               </button>
             ) : (
               <div style={{ font: '600 16px/1 ' + theme.font.sans, color: '#3B6FC4', textDecoration: 'underline', textUnderlineOffset: 3 }}>Job closed</div>

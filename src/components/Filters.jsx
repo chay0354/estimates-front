@@ -36,6 +36,10 @@ export default function Filters({ filters, setFilter, reset, lookups }) {
         <option value="all">All types</option>
         {(lookups?.estimateTypes || []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
       </select>
+      <select value={filters.technicianId || 'all'} onChange={(e) => setFilter('technicianId', e.target.value)} style={control}>
+        <option value="all">All technicians</option>
+        {(lookups?.technicians || []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
       <select value={filters.commissionStructure} onChange={(e) => setFilter('commissionStructure', e.target.value)} style={control}>
         <option value="all">All commissions</option>
         {COMMISSION_STRUCTURES.map((c) => <option key={c} value={c}>{c}</option>)}

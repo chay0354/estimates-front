@@ -9,7 +9,8 @@ const STAGES = [
   { n: 2, to: '/jobs?status=Work In Progress', label: 'Work In Progress', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Work In Progress' : q.status === 'Work In Progress' && !q.stage },
   { n: 3, to: '/jobs?stage=confirm-deposit', label: 'Confirm Deposit', match: (p, q, flow) => flow ? flow.stage === 'confirm-deposit' : q.stage === 'confirm-deposit' },
   { n: 4, to: '/jobs?status=Ready To Close', label: 'Ready to Close', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Ready To Close' : q.status === 'Ready To Close' },
-  { n: 5, to: '/jobs?status=Admin Approval', label: 'Admin Approval', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Admin Approval' : q.status === 'Admin Approval' }
+  { n: 5, to: '/jobs?status=Admin Approval', label: 'Admin Approval', match: (p, q, flow) => flow ? !flow.stage && flow.status === 'Admin Approval' : q.status === 'Admin Approval' },
+  { n: 6, to: '/', label: 'Estimates/Jobs', match: (p, q, flow) => flow ? flow.stage === 'overview' : p === '/' }
 ];
 
 function queryOf(search) {

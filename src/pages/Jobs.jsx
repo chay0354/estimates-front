@@ -4,6 +4,7 @@ import * as api from '../api/estimates.js';
 import { theme, money, shortMoney, shortDate } from '../theme.js';
 import { JOB_STATUSES } from '../constants/enums.js';
 import { Page, Panel, Kpis, control, head, Empty } from '../components/Page.jsx';
+import LatePaymentBars from '../components/LatePaymentBars.jsx';
 
 const JOB_COLOR = {
   'Work In Progress': ['#FDF3E3', '#8A5A08'],
@@ -13,9 +14,10 @@ const JOB_COLOR = {
 };
 
 const COLUMNS = '112px 1.4fr 150px 92px 110px 1fr .9fr';
+const DEPOSIT_COLUMNS = '112px 1.4fr 150px 92px 110px 110px 1fr .9fr';
 
 const STAGE_META = {
-  'confirm-deposit': { title: 'Confirm Deposit', subtitle: 'payments waiting on accounting' },
+  'confirm-deposit': { title: 'Confirm Deposit', subtitle: 'deposits for every job, any stage' },
   'Work In Progress': { title: 'Work In Progress', subtitle: 'active jobs' },
   'Ready To Close': { title: 'Ready to Close', subtitle: 'awaiting closeout' },
   'Admin Approval': { title: 'Admin Approval', subtitle: 'ready for payout' },
@@ -44,9 +46,9 @@ export default function Jobs() {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (stage === 'confirm-deposit') {
-        if (!r.unconfirmedPayments) return false;
+        // every converted job, any stage — deposits stay editable after Ready to Close
       } else if (status === 'Work In Progress') {
-        if (r.jobStatus !== status || r.unconfirmedPayments) return false;
+        if (r.jobStatus !== status || r.awaitingDeposit) return false;
       } else if (status !== 'all' && r.jobStatus !== status) return false;
       if (!needle) return true;
       return [r.estimateNumber, r.customer?.name, r.contact?.name, r.jobStatus]
@@ -54,7 +56,7 @@ export default function Jobs() {
     });
   }, [rows, q, status, stage]);
 
-  const counts = Object.fromEntries(JOB_STATUSES.map((s) => [s, rows.filter((r) => r.jobStatus === s).length]));
+  const counts = Object.fromEntries(JOB_STATUSES.map((s) => [s, rows.filter((r) => r.jobStatus === s && !(s === 'Work In Progress' && r.awaitingDeposit)).length]));
   const jobValue = filtered.reduce((s, r) => s + Number(r.jobAmount || 0), 0);
   const meta = STAGE_META[stage] || STAGE_META[statusFilter] || { title: 'Converted to Job', subtitle: 'jobs from won estimates' };
 
@@ -70,6 +72,8 @@ export default function Jobs() {
         { label: 'Closed', value: String(counts['Closed'] || 0), note: 'finished jobs' }
       ]} />
 
+      {stage === 'confirm-deposit' && <LatePaymentBars rows={rows} />}
+
       <Panel>
         <div style={{ padding: '13px 15px', borderBottom: '1px solid #EDE9E1', display: 'flex', gap: 8 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search job, customer, contact…" style={{ ...control, flex: 1 }} />
@@ -79,19 +83,20 @@ export default function Jobs() {
           </select>
         </div>
         <div style={{ overflowX: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 12, padding: '10px 15px', background: '#FBFAF8', borderBottom: '1px solid #EDE9E1' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: stage === 'confirm-deposit' ? DEPOSIT_COLUMNS : COLUMNS, gap: 12, padding: '10px 15px', background: '#FBFAF8', borderBottom: '1px solid #EDE9E1' }}>
           <div style={head}>Estimate</div>
           <div style={head}>Customer</div>
           <div style={head}>Job status</div>
           <div style={head}>Job date</div>
           <div style={{ ...head, textAlign: 'right' }}>Job amount</div>
+          {stage === 'confirm-deposit' && <div style={{ ...head, textAlign: 'right' }}>Deposits</div>}
           <div style={head}>Installers</div>
           <div style={head}>Assigned</div>
         </div>
         {filtered.map((r) => {
           const [bg, fg] = JOB_COLOR[r.jobStatus] || ['#F1EEE8', '#5C574C'];
           return (
-            <div key={r.id} onClick={() => nav(stage === 'confirm-deposit' ? '/jobs/' + r.id + '?stage=confirm-deposit' : '/jobs/' + r.id + (r.jobStatus ? '?status=' + encodeURIComponent(r.jobStatus) : ''))} style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 12, padding: '13px 15px', borderBottom: '1px solid #F2EFE9', alignItems: 'center', cursor: 'pointer' }}>
+            <div key={r.id} onClick={() => nav(stage === 'confirm-deposit' ? '/jobs/' + r.id + '?stage=confirm-deposit' : '/jobs/' + r.id + (r.jobStatus ? '?status=' + encodeURIComponent(r.jobStatus) : ''))} style={{ display: 'grid', gridTemplateColumns: stage === 'confirm-deposit' ? DEPOSIT_COLUMNS : COLUMNS, gap: 12, padding: '13px 15px', borderBottom: '1px solid #F2EFE9', alignItems: 'center', cursor: 'pointer' }}>
               <div style={{ font: '500 13px/1 ' + theme.font.mono }}>{r.estimateNumber}</div>
               <div>
                 <div style={{ font: '500 13px/1.3 ' + theme.font.sans }}>{r.customer?.name}</div>
@@ -102,6 +107,11 @@ export default function Jobs() {
               </div>
               <div style={{ font: '400 12px/1 ' + theme.font.mono, color: theme.color.muted }}>{shortDate(r.jobDate)}</div>
               <div style={{ font: '500 13px/1 ' + theme.font.mono, textAlign: 'right' }}>{money(r.jobAmount)}</div>
+              {stage === 'confirm-deposit' && (
+                <div style={{ font: '500 13px/1 ' + theme.font.mono, textAlign: 'right', color: r.depositCovered ? theme.color.won : theme.color.body }}>
+                  {money(r.totalPayments)}
+                </div>
+              )}
               <div style={{ font: '400 12px/1.3 ' + theme.font.sans, color: theme.color.body }}>
                 {(r.installers || []).map((i) => i.name).join(', ') || '—'}
               </div>
@@ -110,7 +120,7 @@ export default function Jobs() {
           );
         })}
         </div>
-        {!loading && filtered.length === 0 && <Empty>{stage === 'confirm-deposit' ? 'No payments waiting on deposit confirmation.' : 'No jobs in this stage.'}</Empty>}
+        {!loading && filtered.length === 0 && <Empty>{stage === 'confirm-deposit' ? 'No jobs yet.' : 'No jobs in this stage.'}</Empty>}
       </Panel>
     </Page>
   );
