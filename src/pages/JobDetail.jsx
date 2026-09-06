@@ -11,14 +11,20 @@ const JOB_COLOR = {
   'Work In Progress': ['#FDF3E3', '#8A5A08'],
   'Ready To Close': ['#E9F0FB', '#1E4B8F'],
   'Admin Approval': ['#F3EAFB', '#6B2F9B'],
+  'Ready To Pay': ['#E8F6F3', '#0E6655'],
   'Closed': ['#E4F3EB', '#0F6B45']
 };
 
 const NEXT = {
   'Work In Progress': 'Ready To Close',
   'Ready To Close': 'Admin Approval',
-  'Admin Approval': 'Closed'
+  'Admin Approval': 'Ready To Pay',
+  'Ready To Pay': 'Closed'
 };
+
+function moneyPct(amount, pct) {
+  return money(amount) + ' (' + Number(pct || 0).toFixed(2) + '%)';
+}
 
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (v) => Number(String(v || '').replace(/[^0-9.]/g, '')) || 0;
@@ -133,7 +139,8 @@ export default function JobDetail() {
   const next = NEXT[job.jobStatus];
   const canApprove = ['ADMIN', 'MANAGER'].includes(user?.role);
   const readyToClose = job.jobStatus === 'Ready To Close';
-  const moveLabel = next === 'Admin Approval' ? 'Move to Ready to Pay' : next ? 'Move to ' + next : '';
+  const readyToPay = job.jobStatus === 'Ready To Pay';
+  const moveLabel = next === 'Admin Approval' ? 'Move to Admin Approval' : next === 'Ready To Pay' ? 'Move to Ready to Pay' : next ? 'Move to ' + next : '';
 
   if (confirmDeposit) {
     return (
@@ -211,6 +218,49 @@ export default function JobDetail() {
     );
   }
 
+  if (readyToPay) {
+    return (
+      <Page
+        title="Ready to Pay"
+        subtitle={[job.jobNumber || job.estimateNumber, job.customer?.name].filter(Boolean).join(' · ')}
+        action={<button onClick={() => nav(listPath)} style={{ height: 34, padding: '0 14px', border: '1px solid ' + theme.color.inputBorder, borderRadius: 6, background: '#fff', font: '500 12px/1 ' + theme.font.sans, cursor: 'pointer' }}>Back</button>}
+      >
+        {error && <div style={{ background: '#FDF1EC', border: '1px solid #F0C8B6', borderRadius: 8, padding: '12px 14px', font: '400 13px/1.5 ' + theme.font.sans, color: '#8C2F09' }}>{error}</div>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ padding: '5px 9px', borderRadius: 5, font: '500 11px/1 ' + theme.font.sans, background: bg, color: fg }}>{job.jobStatus}</span>
+          {next && (
+            <button
+              disabled={saving || !canApprove}
+              onClick={() => patch({ jobStatus: next, adminApproved: true })}
+              style={{
+                border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+                font: '600 16px/1 ' + theme.font.sans, color: '#3B6FC4',
+                textDecoration: 'underline', textUnderlineOffset: 3, opacity: saving ? 0.7 : 1
+              }}
+            >
+              {moveLabel}
+            </button>
+          )}
+        </div>
+        <Panel>
+          <div style={{ padding: '8px 20px 12px' }}>
+            <Stack label="Total Job Amount" value={money(t.jobAmount)} />
+            <Stack label="Total Expenses (% From Gross)" value={moneyPct(t.allCosts, t.allCostsPct)} />
+            <Stack label="Profit" value={moneyPct(t.profit, t.profitPct)} />
+            <Stack label="Advance Payment (% From Gross)" value={moneyPct(t.advancePayment, t.advancePct)} />
+            <Stack label="Tech Commission (% From Gross)" value={moneyPct(t.techCommission, t.techCommissionPct)} />
+            <Stack label="Tech Bonus" value={money(job.techBonus)} />
+            <Stack label="Membership Bonus" value={money(job.membershipBonus)} />
+            <Stack label="Google Bonus" value={money(job.googleStarBonus)} />
+            <Stack label="Yelp Bonus" value={money(job.yelpStarBonus)} />
+            <Stack label="Company Profit After Tech (% From Gross)" value={moneyPct(t.companyProfitAfterTech, t.companyProfitAfterTechPct)} />
+            <Stack label="Total To Tech (% From Gross)" value={moneyPct(t.totalToTech, t.totalToTechPct)} />
+          </div>
+        </Panel>
+      </Page>
+    );
+  }
+
   return (
     <>
     <style>{`.job-review-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid #C9D7EE;box-shadow:0 1px 2px rgba(0,0,0,.15);cursor:pointer}.job-review-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid #C9D7EE;box-shadow:0 1px 2px rgba(0,0,0,.15);cursor:pointer}`}</style>
@@ -247,7 +297,7 @@ export default function JobDetail() {
               </button>
             ) : next ? (
               <button
-                disabled={saving || (['Admin Approval', 'Closed'].includes(next) && !canApprove)}
+                disabled={saving || (['Admin Approval', 'Ready To Pay', 'Closed'].includes(next) && !canApprove)}
                 onClick={async () => {
                   const body = {
                     googleReview: job.googleReview, yelpReview: job.yelpReview,
@@ -260,7 +310,7 @@ export default function JobDetail() {
                     }
                     return;
                   }
-                  await patch({ ...body, jobStatus: next, adminApproved: next === 'Closed' || next === 'Admin Approval' });
+                  await patch({ ...body, jobStatus: next, adminApproved: next === 'Closed' || next === 'Admin Approval' || next === 'Ready To Pay' });
                 }}
                 style={{
                   border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',

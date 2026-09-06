@@ -62,6 +62,7 @@ export default function Dashboard() {
       'Confirm Deposit': 0,
       'Ready To Close': 0,
       'Admin Approval': 0,
+      'Ready To Pay': 0,
       Closed: 0
     };
     for (const row of allRows) counts[flowStage(row)] = (counts[flowStage(row)] || 0) + 1;
@@ -115,6 +116,7 @@ export default function Dashboard() {
           ['Confirm Deposit', 'awaiting accounting'],
           ['Ready To Close', 'closeout'],
           ['Admin Approval', 'ready for payout'],
+          ['Ready To Pay', 'tech payouts'],
           ['Closed', 'finished jobs']
         ].map(([label, note]) => {
           const on = stageFilter === label;

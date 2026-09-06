@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { theme, money, shortDate } from '../theme.js';
 import { flowStage } from '../lib/flowStage.js';
 
@@ -7,10 +8,11 @@ const STAGE_COLOR = {
   'Confirm Deposit': ['#FDF1EC', '#8C2F09'],
   'Ready To Close': ['#E9F0FB', '#1E4B8F'],
   'Admin Approval': ['#F3EAFB', '#6B2F9B'],
+  'Ready To Pay': ['#E8F6F3', '#0E6655'],
   Closed: ['#E4F3EB', '#0F6B45']
 };
 
-const COLUMNS = 'minmax(108px, 1fr) minmax(140px, 1.4fr) minmax(110px, 1fr) minmax(90px, .9fr) 78px 104px minmax(88px, .8fr) minmax(148px, 1.1fr) minmax(128px, 1fr) 108px';
+const COLUMNS = 'minmax(108px, 1fr) minmax(140px, 1.4fr) minmax(110px, 1fr) minmax(90px, .9fr) 78px 104px minmax(88px, .8fr) minmax(148px, 1.1fr) minmax(128px, 1fr) 168px';
 const head = {
   font: '500 11px/1.2 ' + theme.font.sans,
   letterSpacing: '.05em',
@@ -39,6 +41,7 @@ function Pill({ text, bg, fg }) {
 }
 
 export default function EstimateTable({ rows, sort, onSort, highlightId, onConvert, convertingId }) {
+  const nav = useNavigate();
   const arrow = (key) => (sort.sortKey === key ? (sort.sortDir === 'desc' ? ' ↓' : ' ↑') : '');
   const row = {
     display: 'grid',
@@ -93,7 +96,8 @@ export default function EstimateTable({ rows, sort, onSort, highlightId, onConve
             <div style={{ ...cell, font: '400 12px/1.3 ' + theme.font.sans, color: theme.color.muted }}>{r.commissionStructure}</div>
             <div style={cell}><Pill text={r.status} bg={statusBg} fg={statusFg} /></div>
             <div style={cell}><Pill text={stage} bg={stageBg} fg={stageFg} /></div>
-            <div style={{ ...cell, textAlign: 'right' }}>
+            <div style={{ ...cell, display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+              <button onClick={() => nav('/estimates/' + r.id)} style={actionBtn}>Edit</button>
               {r.converted ? (
                 <button onClick={() => onConvert(r, 'open')} style={actionBtn}>Open job</button>
               ) : (
